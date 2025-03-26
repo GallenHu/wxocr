@@ -19,11 +19,14 @@ This project would not be possible without the work of [swigger](https://github.
 ### Using Docker
 
 ```bash
-# Pull the image
-docker pull golangboyme/wxocr
+# Git clone the repository
+git clone https://github.com/missuo/wxocr.git
+
+# Enter the repository
+cd wxocr
 
 # Run the container
-docker run -d -p 5000:5000 --name wechat-ocr-api golangboyme/wxocr
+docker compose up -d --build
 ```
 
 ### API Usage
