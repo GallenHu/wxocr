@@ -4,51 +4,63 @@ import uuid
 import base64
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_basicauth import BasicAuth
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Basic Auth 配置
+app.config["BASIC_AUTH_USERNAME"] = os.getenv("USERNAME", "admin")
+app.config["BASIC_AUTH_PASSWORD"] = os.getenv("PASSWORD", "password")
+basic_auth = BasicAuth(app)
+
 wcocr.init("/app/wx/opt/wechat/wxocr", "/app/wx/opt/wechat")
 
-@app.route('/ocr', methods=['POST'])
+
+@app.route("/ocr", methods=["POST"])
+@basic_auth.required
 def ocr():
     try:
         # Get base64 image from request
-        image_data = request.json.get('image')
+        image_data = request.json.get("image")
         if not image_data:
-            return jsonify({'error': 'No image data provided'}), 400
-        
+            return jsonify({"error": "No image data provided"}), 400
+
         # Create temp directory if not exists
-        temp_dir = 'temp'
+        temp_dir = "temp"
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        
+
         # Generate unique filename and save image
         filename = os.path.join(temp_dir, f"{str(uuid.uuid4())}.png")
         try:
             image_bytes = base64.b64decode(image_data)
-            with open(filename, 'wb') as f:
+            with open(filename, "wb") as f:
                 f.write(image_bytes)
-            
+
             # Process image with OCR
             result = wcocr.ocr(filename)
-            return jsonify({'result': result})
+            return jsonify({"result": result})
         finally:
             # Clean up temp file
             if os.path.exists(filename):
                 os.remove(filename)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
 
 # Handle unsupported methods for /ocr route
-@app.route('/ocr', methods=['GET', 'PUT', 'DELETE', 'PATCH'])
+@app.route("/ocr", methods=["GET", "PUT", "DELETE", "PATCH"])
+@basic_auth.required
 def unsupported_method():
-    return jsonify({'error': 'Method not allowed'}), 405
+    return jsonify({"error": "Method not allowed"}), 405
+
 
 # Handle non-existent paths
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({'error': 'Resource not found'}), 404
+    return jsonify({"error": "Resource not found"}), 404
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, threaded=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, threaded=True)
